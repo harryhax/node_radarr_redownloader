@@ -2,9 +2,10 @@
 
 Node Radarr Redownloader is a CLI that refreshes selected movies in size order: it deletes each movie and files from Radarr, then re-adds it with search enabled so the download restarts automatically. It is useful for batch re-downloads with a configurable count and delay.
 
-The main purpose of this program is to re-download movies after Radarr profile changes, so new grabs follow your updated quality and selection rules.
+## TLDR; 
+Re-download movies after Radarr profile changes, so new grabs follow your updated quality and selection rules.
 
-This script:
+## Details
 
 1. Fetches all Radarr movies
 2. Sorts them by size descending
@@ -58,8 +59,34 @@ or
 npm start
 ```
 
+## Standalone Binaries (Windows, Linux, macOS)
+
+This project can be compiled to standalone executables so users do not need Node.js installed.
+
+Build for your current machine:
+
+```bash
+npm run build:current
+```
+
+Build all targets (win-x64, linux-x64, macos-x64, macos-arm64):
+
+```bash
+npm run build:all
+```
+
+Compiled files are written to `dist/`.
+
+Running compiled binaries:
+
+- Linux/macOS: run the file from `dist/` directly
+- Windows: run the `.exe` file from `dist/`
+
+Environment variables are still required for API access (`RADARR_URL`, `RADARR_API_KEY`, and optional fallback variables).
+
 ## Important
 
 - This script is destructive: it deletes Radarr movie entries and files before re-adding.
 - It asks for explicit `YES` confirmation before making changes.
 - If re-add fails for a movie, that movie may remain deleted and will be shown in the failure summary.
+- Failed items are also appended to `logs/failed-movies.log` so you can track what still needs to be re-added or downloaded.

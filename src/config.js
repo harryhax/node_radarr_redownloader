@@ -1,5 +1,6 @@
 // Trim trailing slashes so URL joins are consistent.
 const RADARR_URL = (process.env.RADARR_URL || "http://localhost:7878").replace(/\/+$/, "");
+// Required for all authenticated Radarr API requests.
 const RADARR_API_KEY = process.env.RADARR_API_KEY;
 // Optional fallbacks used only when a movie record is missing these values.
 const DEFAULT_QUALITY_PROFILE_ID = Number.parseInt(

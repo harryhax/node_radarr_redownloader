@@ -1,4 +1,5 @@
 function wait(ms) {
+  // Small async delay helper used to pace Radarr operations.
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

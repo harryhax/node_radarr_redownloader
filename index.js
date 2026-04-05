@@ -10,6 +10,7 @@ const { RadarrClient } = require("./src/radarrApi");
 const { getMovieSize, formatBytes } = require("./src/utils");
 const { createPromptInterface, askInteger, askForConfirmation } = require("./src/prompts");
 const { processMovies } = require("./src/movieWorkflow");
+const { writeFailureLog } = require("./src/failureLogger");
 
 // Orchestrates the end-to-end interactive workflow.
 async function main() {
@@ -83,6 +84,7 @@ async function main() {
   console.log(`Failed: ${failures.length}`);
 
   if (rememberedMovies.length > 0) {
+    // Echo the in-memory list so users can cross-check exactly what was touched.
     console.log("\nRemembered in memory during this run:");
     rememberedMovies.forEach((movie, index) => {
       console.log(
@@ -97,6 +99,17 @@ async function main() {
       console.log(`${index + 1}. ${failure.title} (${failure.imdbId || "n/a"})`);
       console.log(`   ${failure.error}`);
     });
+
+    try {
+      // Persist failures to disk so users can revisit what still needs manual attention.
+      const logFilePath = await writeFailureLog(failures);
+      if (logFilePath) {
+        console.log(`\nFailure log written to ${logFilePath}`);
+      }
+    } catch (error) {
+      console.error(`Could not write failure log: ${error instanceof Error ? error.message : error}`);
+    }
+
     process.exitCode = 1;
   }
 }

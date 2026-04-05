@@ -26,6 +26,7 @@ function buildReAddPayload(movie, defaults) {
   }
 
   return {
+    // Keep original metadata where possible so re-added entries stay consistent.
     title: movie.title,
     qualityProfileId,
     titleSlug: movie.titleSlug,
@@ -55,6 +56,7 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
     console.log(`\n[${index + 1}/${count}] Processing ${name}${imdbId ? ` (${imdbId})` : ""}`);
 
     rememberedMovies.push({
+      // Saved for end-of-run reporting and troubleshooting.
       title: name,
       imdbId,
       tmdbId: movie.tmdbId || null,
@@ -72,6 +74,7 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
       failures.push({
         title: name,
         imdbId,
+        // Store full error text for console summary and file logging.
         error: error instanceof Error ? error.message : String(error),
       });
 

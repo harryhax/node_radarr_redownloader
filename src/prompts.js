@@ -11,6 +11,7 @@ async function askInteger(readlineInterface, prompt, { defaultValue, min, max })
     const defaultText = defaultValue !== undefined ? ` [default: ${defaultValue}]` : "";
     const answer = (await readlineInterface.question(`${prompt}${defaultText}: `)).trim();
 
+    // Empty input accepts the provided default when available.
     if (!answer && defaultValue !== undefined) {
       return defaultValue;
     }
@@ -37,7 +38,7 @@ async function askInteger(readlineInterface, prompt, { defaultValue, min, max })
 }
 
 async function askForConfirmation(readlineInterface) {
-  // Explicit YES guard for destructive operations.
+  // Explicit YES guard for destructive operations (case-sensitive by design).
   const confirmation = (await readlineInterface.question("\nType YES to continue: ")).trim();
   return confirmation === "YES";
 }

@@ -21,6 +21,7 @@ class RadarrClient {
 
     const url = new URL(`${this.baseUrl}/api/v3${path}`);
 
+    // Query params are used by Radarr for options like deleteFiles=true.
     if (query && typeof query === "object") {
       for (const [key, value] of Object.entries(query)) {
         if (value !== undefined && value !== null) {
@@ -51,6 +52,7 @@ class RadarrClient {
     }
 
     if (!response.ok) {
+      // Surface both status and API-provided detail text to make failures actionable.
       const detailText = typeof parsedBody === "string" ? parsedBody : JSON.stringify(parsedBody);
       throw new RadarrApiError(
         `Request failed (${response.status}) ${response.statusText}: ${detailText}`,
@@ -63,6 +65,7 @@ class RadarrClient {
   }
 
   async getMovies() {
+    // Returns full movie records, including ids and metadata needed to re-add.
     return this.request("/movie");
   }
 
@@ -77,6 +80,7 @@ class RadarrClient {
   }
 
   async addMovie(moviePayload) {
+    // addOptions.searchForMovie is supplied by the caller in the payload.
     return this.request("/movie", {
       method: "POST",
       body: moviePayload,
