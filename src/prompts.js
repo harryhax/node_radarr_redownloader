@@ -6,6 +6,7 @@ function createPromptInterface() {
 }
 
 async function askInteger(readlineInterface, prompt, { defaultValue, min, max }) {
+  // Keep asking until the user provides a bounded integer value.
   while (true) {
     const defaultText = defaultValue !== undefined ? ` [default: ${defaultValue}]` : "";
     const answer = (await readlineInterface.question(`${prompt}${defaultText}: `)).trim();
@@ -36,6 +37,7 @@ async function askInteger(readlineInterface, prompt, { defaultValue, min, max })
 }
 
 async function askForConfirmation(readlineInterface) {
+  // Explicit YES guard for destructive operations.
   const confirmation = (await readlineInterface.question("\nType YES to continue: ")).trim();
   return confirmation === "YES";
 }

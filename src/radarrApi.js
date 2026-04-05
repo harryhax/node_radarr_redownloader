@@ -13,6 +13,7 @@ class RadarrClient {
     this.apiKey = apiKey;
   }
 
+  // Shared request wrapper for all Radarr endpoints used by this tool.
   async request(path, { method = "GET", body, query } = {}) {
     if (!this.apiKey) {
       throw new Error("RADARR_API_KEY is required.");
@@ -37,6 +38,7 @@ class RadarrClient {
       body: body ? JSON.stringify(body) : undefined,
     });
 
+    // Radarr responses can be JSON or plain text, so parse defensively.
     const responseText = await response.text();
     let parsedBody = null;
 
@@ -65,6 +67,7 @@ class RadarrClient {
   }
 
   async deleteMovie(movieId) {
+    // deleteFiles=true removes files/folders along with the Radarr entry.
     return this.request(`/movie/${movieId}`, {
       method: "DELETE",
       query: {

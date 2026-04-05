@@ -2,6 +2,8 @@
 
 Node Radarr Redownloader is a CLI that refreshes selected movies in size order: it deletes each movie and files from Radarr, then re-adds it with search enabled so the download restarts automatically. It is useful for batch re-downloads with a configurable count and delay.
 
+The main purpose of this program is to re-download movies after Radarr profile changes, so new grabs follow your updated quality and selection rules.
+
 This script:
 
 1. Fetches all Radarr movies

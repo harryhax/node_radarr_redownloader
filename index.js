@@ -11,6 +11,7 @@ const { getMovieSize, formatBytes } = require("./src/utils");
 const { createPromptInterface, askInteger, askForConfirmation } = require("./src/prompts");
 const { processMovies } = require("./src/movieWorkflow");
 
+// Orchestrates the end-to-end interactive workflow.
 async function main() {
   if (!RADARR_API_KEY) {
     console.error("Missing RADARR_API_KEY environment variable.");
@@ -31,6 +32,7 @@ async function main() {
     return;
   }
 
+  // Process largest movies first.
   const sortedMovies = [...movies].sort((a, b) => getMovieSize(b) - getMovieSize(a));
 
   const rl = createPromptInterface();
@@ -63,6 +65,7 @@ async function main() {
     return;
   }
 
+  // Runs the delete + re-add cycle with the requested pacing.
   const { rememberedMovies, failures } = await processMovies(client, sortedMovies, {
     count,
     delaySeconds,

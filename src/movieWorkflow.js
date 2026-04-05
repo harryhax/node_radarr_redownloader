@@ -1,6 +1,7 @@
 const { wait } = require("./utils");
 
 function buildReAddPayload(movie, defaults) {
+  // Radarr add payload with search enabled to immediately trigger a download.
   const tmdbId = movie.tmdbId;
   if (!tmdbId) {
     throw new Error(`Cannot re-add '${movie.title}': missing tmdbId.`);
@@ -45,6 +46,7 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
   const rememberedMovies = [];
   const failures = [];
 
+  // Process one movie at a time to avoid overloading Radarr.
   for (let index = 0; index < count; index += 1) {
     const movie = movies[index];
     const name = movie.title || "Unknown title";
@@ -60,6 +62,7 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
 
     try {
       await client.deleteMovie(movie.id);
+      // Give Radarr a brief moment to settle delete side-effects before re-adding.
       await wait(1500);
 
       const payload = buildReAddPayload(movie, defaults);
