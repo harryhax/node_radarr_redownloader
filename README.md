@@ -1,7 +1,6 @@
 # Node Radarr Redownloader
 
 [![Release](https://img.shields.io/github/v/release/harryhax/node_radarr_redownloader?display_name=tag)](https://github.com/harryhax/node_radarr_redownloader/releases)
-[![Downloads](https://img.shields.io/github/downloads/harryhax/node_radarr_redownloader/total)](https://github.com/harryhax/node_radarr_redownloader/releases)
 [![Release Build](https://img.shields.io/github/actions/workflow/status/harryhax/node_radarr_redownloader/release.yml?label=release%20build)](https://github.com/harryhax/node_radarr_redownloader/actions/workflows/release.yml)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/en/download)
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
@@ -108,7 +107,7 @@ Manual trigger option:
 
 ## Important
 
-- This script is destructive: it deletes Radarr movie entries and files before re-adding.
+- Heads up: this script removes existing movie entries and files before re-adding them, so use it only for movies you intentionally want to refresh.
 - It asks for explicit `YES` confirmation before making changes.
 - If re-add fails for a movie, that movie may remain deleted and will be shown in the failure summary.
 - Failed items are also appended to `logs/failed-movies.log` so you can track what still needs to be re-added or downloaded.
