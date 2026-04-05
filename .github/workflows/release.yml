@@ -28,7 +28,7 @@ jobs:
           - os: windows-latest
             target: node18-win-x64
             asset_name: node-radarr-redownloader-win-x64.exe
-          - os: macos-13
+          - os: macos-14
             target: node18-macos-x64
             asset_name: node-radarr-redownloader-macos-x64
           - os: macos-14
