@@ -51,6 +51,12 @@ jobs:
       - name: Build Binary
         run: npx pkg . --targets ${{ matrix.target }} --out-path dist
 
+      - name: Normalize Binary Name
+        env:
+          ASSET_NAME: ${{ matrix.asset_name }}
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const dist='dist'; const files=fs.readdirSync(dist).filter((f)=>fs.statSync(path.join(dist,f)).isFile()); if(files.length!==1){console.error('Expected exactly 1 file in dist, found '+files.length+': '+files.join(', ')); process.exit(1);} const src=path.join(dist,files[0]); const dst=path.join(dist,process.env.ASSET_NAME); if(src!==dst){fs.renameSync(src,dst);} console.log('Prepared artifact: '+path.basename(dst));"
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
