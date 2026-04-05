@@ -7,34 +7,101 @@ const {
   DEFAULT_ROOT_FOLDER_PATH,
 } = require("./src/config");
 const { RadarrClient } = require("./src/radarrApi");
-const { getMovieSize, isMovieBelowQualityCutoff, formatBytes } = require("./src/utils");
+const {
+  getMovieSize,
+  isMovieBelowQualityCutoff,
+  movieUsesCustomFormat,
+  formatBytes,
+} = require("./src/utils");
 const { createPromptInterface, askInteger, askForConfirmation } = require("./src/prompts");
 const { processMovies } = require("./src/movieWorkflow");
 const { writeFailureLog } = require("./src/failureLogger");
 
-const QUALITY_FILTER_BELOW_ONLY = "below-only";
-const QUALITY_FILTER_ABOVE_ONLY = "above-only";
-const QUALITY_FILTER_BOTH = "both";
+const MAIN_MODE_QUALITY = "quality";
+const MAIN_MODE_FILTER = "filter";
+const MAIN_MODE_SIZE = "size";
+const MAIN_MODE_NEWEST = "newest";
+const MAIN_MODE_OLDEST = "oldest";
 
-const SORT_MODE_QUALITY_FIRST = "quality-first";
-const SORT_MODE_SIZE_DESC = "size-desc";
+const QUALITY_SCOPE_BELOW = "below";
+const QUALITY_SCOPE_AT_OR_ABOVE = "at-or-above";
+const QUALITY_SCOPE_BOTH = "both";
 
-function sortMoviesByMode(movies, sortMode) {
-  if (sortMode === SORT_MODE_SIZE_DESC) {
-    return [...movies].sort((a, b) => getMovieSize(b) - getMovieSize(a));
+function getMovieAddedTimestamp(movie) {
+  const addedRaw = movie?.added ?? movie?.addedDate ?? movie?.dateAdded ?? null;
+  const parsed = addedRaw ? Date.parse(String(addedRaw)) : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getMovieAddedDisplay(movie) {
+  const addedTimestamp = getMovieAddedTimestamp(movie);
+  if (!addedTimestamp) {
+    return "unknown";
   }
 
-  // Default: prioritize movies below quality cutoff, then use size as tie-breaker.
-  return [...movies].sort((a, b) => {
-    const aPriority = isMovieBelowQualityCutoff(a) ? 1 : 0;
-    const bPriority = isMovieBelowQualityCutoff(b) ? 1 : 0;
+  return new Date(addedTimestamp).toISOString().slice(0, 10);
+}
 
-    if (bPriority !== aPriority) {
-      return bPriority - aPriority;
-    }
+function getMoviesByMainMode(movies, mode, qualityScope) {
+  const modeFilteredMovies =
+    mode === MAIN_MODE_QUALITY
+      ? movies.filter((movie) => {
+          const isBelowCutoff = isMovieBelowQualityCutoff(movie);
 
-    return getMovieSize(b) - getMovieSize(a);
-  });
+          if (qualityScope === QUALITY_SCOPE_BELOW) {
+            return isBelowCutoff;
+          }
+
+          if (qualityScope === QUALITY_SCOPE_AT_OR_ABOVE) {
+            return !isBelowCutoff;
+          }
+
+          return true;
+        })
+      : mode === MAIN_MODE_FILTER
+        ? movies.filter((movie) => !movieUsesCustomFormat(movie))
+        : movies;
+
+  if (mode === MAIN_MODE_NEWEST) {
+    return [...modeFilteredMovies].sort((a, b) => {
+      const addedDiff = getMovieAddedTimestamp(b) - getMovieAddedTimestamp(a);
+      if (addedDiff !== 0) {
+        return addedDiff;
+      }
+
+      return getMovieSize(b) - getMovieSize(a);
+    });
+  }
+
+  if (mode === MAIN_MODE_OLDEST) {
+    return [...modeFilteredMovies].sort((a, b) => {
+      const addedDiff = getMovieAddedTimestamp(a) - getMovieAddedTimestamp(b);
+      if (addedDiff !== 0) {
+        return addedDiff;
+      }
+
+      return getMovieSize(b) - getMovieSize(a);
+    });
+  }
+
+  // Quality/filter/size modes default to largest files first.
+  return [...modeFilteredMovies].sort((a, b) => getMovieSize(b) - getMovieSize(a));
+}
+
+function getMoviePreviewSuffix(movie, selectedMode) {
+  if (selectedMode === MAIN_MODE_QUALITY) {
+    return isMovieBelowQualityCutoff(movie) ? "below cutoff" : "at/above cutoff";
+  }
+
+  if (selectedMode === MAIN_MODE_FILTER) {
+    return "no custom format";
+  }
+
+  if (selectedMode === MAIN_MODE_NEWEST || selectedMode === MAIN_MODE_OLDEST) {
+    return `added: ${getMovieAddedDisplay(movie)}`;
+  }
+
+  return "";
 }
 
 // Orchestrates the end-to-end interactive workflow.
@@ -60,61 +127,68 @@ async function main() {
 
   const belowCutoffCount = movies.filter((movie) => isMovieBelowQualityCutoff(movie)).length;
   const atOrAboveCutoffCount = movies.length - belowCutoffCount;
+  const withCustomFormatCount = movies.filter((movie) => movieUsesCustomFormat(movie)).length;
+  const withoutCustomFormatCount = movies.length - withCustomFormatCount;
   console.log(`Movies below quality cutoff: ${belowCutoffCount}`);
   console.log(`Movies at/above quality cutoff: ${atOrAboveCutoffCount}`);
+  console.log(`Movies using custom format: ${withCustomFormatCount}`);
+  console.log(`Movies without custom format: ${withoutCustomFormatCount}`);
 
   const rl = createPromptInterface();
 
-  console.log("\nChoose quality cutoff filter:");
-  console.log("1. Below quality cutoff only");
-  console.log("2. At/above quality cutoff only");
-  console.log("3. Both");
+  console.log("\nChoose selection mode:");
+  console.log("1. Quality");
+  console.log("2. Filter (without custom format only)");
+  console.log("3. Size (largest first)");
+  console.log("4. Newest added");
+  console.log("5. Oldest added");
 
-  const qualityFilterChoice = await askInteger(rl, "Quality filter", {
+  const modeChoice = await askInteger(rl, "Mode", {
     defaultValue: 1,
     min: 1,
-    max: 3,
+    max: 5,
   });
 
-  const qualityFilter =
-    qualityFilterChoice === 2
-      ? QUALITY_FILTER_ABOVE_ONLY
-      : qualityFilterChoice === 3
-        ? QUALITY_FILTER_BOTH
-        : QUALITY_FILTER_BELOW_ONLY;
+  const selectedMode =
+    modeChoice === 2
+      ? MAIN_MODE_FILTER
+      : modeChoice === 3
+        ? MAIN_MODE_SIZE
+        : modeChoice === 4
+          ? MAIN_MODE_NEWEST
+          : modeChoice === 5
+            ? MAIN_MODE_OLDEST
+            : MAIN_MODE_QUALITY;
 
-  const filteredMovies = movies.filter((movie) => {
-    const isBelowCutoff = isMovieBelowQualityCutoff(movie);
+  let qualityScope = QUALITY_SCOPE_BOTH;
+  if (selectedMode === MAIN_MODE_QUALITY) {
+    console.log("\nChoose quality filter:");
+    console.log("1. Below quality cutoff only");
+    console.log("2. At/above quality cutoff only");
+    console.log("3. Both");
 
-    if (qualityFilter === QUALITY_FILTER_BELOW_ONLY) {
-      return isBelowCutoff;
-    }
+    const qualityScopeChoice = await askInteger(rl, "Quality filter", {
+      defaultValue: 1,
+      min: 1,
+      max: 3,
+    });
 
-    if (qualityFilter === QUALITY_FILTER_ABOVE_ONLY) {
-      return !isBelowCutoff;
-    }
+    qualityScope =
+      qualityScopeChoice === 2
+        ? QUALITY_SCOPE_AT_OR_ABOVE
+        : qualityScopeChoice === 3
+          ? QUALITY_SCOPE_BOTH
+          : QUALITY_SCOPE_BELOW;
+  }
 
-    return true;
-  });
+  const filteredMovies = getMoviesByMainMode(movies, selectedMode, qualityScope);
 
   if (filteredMovies.length === 0) {
-    console.log("No movies matched the selected quality filter.");
+    console.log("No movies matched the selected mode.");
     rl.close();
     return;
   }
-
-  console.log("\nChoose sorting mode:");
-  console.log("1. Below quality cutoff first (recommended)");
-  console.log("2. Size descending");
-
-  const sortModeChoice = await askInteger(rl, "Sorting mode", {
-    defaultValue: 1,
-    min: 1,
-    max: 2,
-  });
-
-  const sortMode = sortModeChoice === 2 ? SORT_MODE_SIZE_DESC : SORT_MODE_QUALITY_FIRST;
-  const sortedMovies = sortMoviesByMode(filteredMovies, sortMode);
+  const sortedMovies = filteredMovies;
 
   const count = await askInteger(rl, "How many movies should be processed", {
     defaultValue: 1,
@@ -128,25 +202,30 @@ async function main() {
     max: 300,
   });
 
-  const sortModeLabel =
-    sortMode === SORT_MODE_QUALITY_FIRST ? "below quality cutoff first" : "size descending";
-  const qualityFilterLabel =
-    qualityFilter === QUALITY_FILTER_BELOW_ONLY
-      ? "below quality cutoff only"
-      : qualityFilter === QUALITY_FILTER_ABOVE_ONLY
-        ? "at/above quality cutoff only"
-        : "both";
+  const modeLabel =
+    selectedMode === MAIN_MODE_QUALITY
+      ? qualityScope === QUALITY_SCOPE_BELOW
+        ? "quality (below quality cutoff only)"
+        : qualityScope === QUALITY_SCOPE_AT_OR_ABOVE
+          ? "quality (at/above quality cutoff only)"
+          : "quality (both)"
+      : selectedMode === MAIN_MODE_FILTER
+        ? "filter (without custom format only)"
+        : selectedMode === MAIN_MODE_SIZE
+          ? "size (largest first)"
+          : selectedMode === MAIN_MODE_NEWEST
+            ? "newest added"
+            : "oldest added";
 
-  console.log(`\nSelected quality filter: ${qualityFilterLabel}`);
+  console.log(`\nSelected mode: ${modeLabel}`);
 
-  console.log(`\nTop selected movies (${sortModeLabel}):`);
+  console.log("\nTop selected movies:");
   for (let index = 0; index < count; index += 1) {
     const movie = sortedMovies[index];
-    const qualityMarker = isMovieBelowQualityCutoff(movie) ? "below cutoff" : "at/above cutoff";
+    const previewSuffix = getMoviePreviewSuffix(movie, selectedMode);
     const imdbLabel = movie.imdbId || "n/a";
-    console.log(
-      `${index + 1}. imdb: ${imdbLabel} | ${movie.title} (${movie.year || "unknown"}) - ${formatBytes(getMovieSize(movie))} | ${qualityMarker}`
-    );
+    const previewBase = `${index + 1}. imdb: ${imdbLabel} | ${movie.title} (${movie.year || "unknown"}) - ${formatBytes(getMovieSize(movie))}`;
+    console.log(previewSuffix ? `${previewBase} | ${previewSuffix}` : previewBase);
   }
 
   const confirmed = await askForConfirmation(rl);

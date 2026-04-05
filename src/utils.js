@@ -16,6 +16,29 @@ function isMovieBelowQualityCutoff(movie) {
   return cutoffNotMet === true;
 }
 
+function movieUsesCustomFormat(movie) {
+  // Prefer score when available; otherwise fallback to custom format array length.
+  const scoreRaw = movie?.movieFile?.customFormatScore ?? movie?.customFormatScore;
+  const score = Number(scoreRaw);
+  if (Number.isFinite(score)) {
+    return score > 0;
+  }
+
+  const movieFileCustomFormats = Array.isArray(movie?.movieFile?.customFormats)
+    ? movie.movieFile.customFormats
+    : null;
+  if (movieFileCustomFormats) {
+    return movieFileCustomFormats.length > 0;
+  }
+
+  const movieCustomFormats = Array.isArray(movie?.customFormats) ? movie.customFormats : null;
+  if (movieCustomFormats) {
+    return movieCustomFormats.length > 0;
+  }
+
+  return false;
+}
+
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
@@ -32,5 +55,6 @@ module.exports = {
   wait,
   getMovieSize,
   isMovieBelowQualityCutoff,
+  movieUsesCustomFormat,
   formatBytes,
 };

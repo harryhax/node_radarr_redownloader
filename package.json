@@ -1,8 +1,8 @@
 {
   "name": "node-radarr-redownloader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
-  "description": "Delete and re-add Radarr movies in descending size order with search enabled.",
+  "description": "Refresh selected Radarr movies using quality/filter/size/newest/oldest selection modes with search enabled.",
   "main": "index.js",
   "bin": "index.js",
   "scripts": {

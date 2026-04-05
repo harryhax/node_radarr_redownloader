@@ -7,7 +7,7 @@
 [![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
 
 
-Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile or rule changes. You can choose a quality-cutoff filter (below, at/above, or both) and a sorting mode (below-cutoff-first or size) before each run. The tool then deletes and re-adds movies with search enabled so new grabs follow your current quality rules, processing one movie at a time with a delay and IMDb-first identifiers to avoid title ambiguity.
+Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile or rule changes. Before each run, you choose one simple mode: quality, filter (without custom format), size, newest added, or oldest added. If you choose quality mode, it then asks whether to include at/above cutoff, below cutoff, or both. The tool then deletes and re-adds movies with search enabled so new grabs follow your current quality rules, processing one movie at a time with a delay and IMDb-first identifiers to avoid title ambiguity.
 
 ## Screenshot
 <p align="center">
@@ -19,10 +19,10 @@ Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr pr
 ## Details
 
 1. Fetches all Radarr movies
-2. Shows counts for movies below cutoff and at/above cutoff
-3. Asks you to choose quality filter (below cutoff, at/above cutoff, or both)
-4. Lets you choose how many to process
-5. Asks you to choose sorting mode (below quality cutoff first, or size descending)
+2. Shows counts for movies below cutoff, at/above cutoff, using custom format, and without custom format
+3. Asks you to choose one mode: quality, filter, size, newest added, or oldest added
+4. If quality mode is selected, asks for quality scope: below cutoff, at/above cutoff, or both
+5. Lets you choose how many to process
 6. For each movie, stores imdb/title in memory (IMDb first), deletes the movie with files, and adds it back with search enabled
 7. Waits between each movie so Radarr can catch up
 
