@@ -1,5 +1,12 @@
 # Node Radarr Redownloader
 
+[![Release](https://img.shields.io/github/v/release/harryhax/node_radarr_redownloader?display_name=tag)](https://github.com/harryhax/node_radarr_redownloader/releases)
+[![Downloads](https://img.shields.io/github/downloads/harryhax/node_radarr_redownloader/total)](https://github.com/harryhax/node_radarr_redownloader/releases)
+[![Release Build](https://img.shields.io/github/actions/workflow/status/harryhax/node_radarr_redownloader/release.yml?label=release%20build)](https://github.com/harryhax/node_radarr_redownloader/actions/workflows/release.yml)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/en/download)
+[![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
+
 Node Radarr Redownloader is a CLI that refreshes selected movies in size order: it deletes each movie and files from Radarr, then re-adds it with search enabled so the download restarts automatically. It is useful for batch re-downloads with a configurable count and delay.
 
 ## TLDR; 
