@@ -6,19 +6,20 @@
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
 
-Node Radarr Redownloader is a CLI that refreshes selected movies: it lets you choose below-cutoff, at/above-cutoff, or both, then sort by below-quality-cutoff first or by size before deleting and re-adding with search enabled. It is useful for batch re-downloads with a configurable count and delay.
+Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile/rule changes. You can choose a quality-cutoff filter (below, at/above, or both) and a sorting mode (below-cutoff-first or size) before each run. The tool then deletes and re-adds movies with search enabled to trigger new downloads.
 
 ## TLDR; 
-Re-download movies after Radarr profile changes, so new grabs follow your updated quality and selection rules.
+Pick a quality filter and sort mode, then re-download movies so new grabs follow your current Radarr quality rules. The script processes one movie at a time with a delay and shows IMDb-first identifiers to avoid title ambiguity.
 
 ## Details
 
 1. Fetches all Radarr movies
-2. Asks you to choose quality filter (below cutoff, at/above cutoff, or both)
-3. Asks you to choose sorting mode (below quality cutoff first, or size descending)
+2. Shows counts for movies below cutoff and at/above cutoff
+3. Asks you to choose quality filter (below cutoff, at/above cutoff, or both)
 4. Lets you choose how many to process
-5. For each movie, stores imdb/title in memory (imdb first), deletes the movie with files, and adds it back with search enabled
-6. Waits between each movie so Radarr can catch up
+5. Asks you to choose sorting mode (below quality cutoff first, or size descending)
+6. For each movie, stores imdb/title in memory (IMDb first), deletes the movie with files, and adds it back with search enabled
+7. Waits between each movie so Radarr can catch up
 
 ## Project Structure
 
