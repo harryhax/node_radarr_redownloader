@@ -1,13 +1,11 @@
 # Node Radarr Redownloader
 
 [![Release](https://img.shields.io/github/v/release/harryhax/node_radarr_redownloader?display_name=tag)](https://github.com/harryhax/node_radarr_redownloader/releases)
-[![Release Build](https://img.shields.io/github/actions/workflow/status/harryhax/node_radarr_redownloader/release.yml?label=release%20build)](https://github.com/harryhax/node_radarr_redownloader/actions/workflows/release.yml)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/en/download)
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
-[![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
 
 
-Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile or rule changes. Before each run, you choose one simple mode: quality, filter (without custom format), size, newest added, or oldest added. If you choose quality mode, it then asks whether to include at/above cutoff, below cutoff, or both. The tool then deletes and re-adds movies with search enabled so new grabs follow your current quality rules, processing one movie at a time with a delay and IMDb-first identifiers to avoid title ambiguity.
+Node Radarr Redownloader is a CLI that refreshes selected Radarr movies after profile/rule changes by deleting and re-adding them with search enabled.
 
 ## Screenshot
 <p align="center">
@@ -16,105 +14,107 @@ Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr pr
    </a>
 </p>
 
-## Details
+## Quick Start
 
-1. Fetches all Radarr movies
-2. Shows counts for movies below cutoff, at/above cutoff, using custom format, and without custom format
-3. Asks you to choose one mode: quality, filter, size, newest added, or oldest added
-4. If quality mode is selected, asks for quality scope: below cutoff, at/above cutoff, or both
-5. Lets you choose how many to process
-6. For each movie, stores imdb/title in memory (IMDb first), deletes the movie with files, and adds it back with search enabled
-7. Waits between each movie so Radarr can catch up
+1. Install dependencies:
 
-## Project Structure
+```bash
+npm install
+```
 
-- `index.js`: Main CLI entry point and high-level flow
-- `src/config.js`: Environment variable parsing and defaults
-- `src/radarrApi.js`: Radarr API client and error handling
-- `src/prompts.js`: Interactive user prompt helpers
-- `src/movieWorkflow.js`: Delete/re-add processing loop logic
-- `src/utils.js`: Shared utility helpers (delay, size formatting)
+2. Create/edit your `.env`:
 
-## Requirements
+```bash
+cp .env.example .env
+```
 
-- Node.js 18+ (minimum)
-- Radarr v3+ with API v3 endpoints enabled (minimum)
-- Radarr API key
+Required values:
 
-Download links:
-
-- Node.js: https://nodejs.org/en/download
-- Radarr: https://radarr.video/#download
-
-## Setup
-
-1. Copy `.env.example` values into your shell environment.
-2. Set at least:
-   - `RADARR_URL`
-   - `RADARR_API_KEY`
+```env
+RADARR_URL=http://localhost:7878
+RADARR_API_KEY=your_api_key_here
+```
 
 Optional fallback values:
 
-- `RADARR_DEFAULT_QUALITY_PROFILE_ID`
-- `RADARR_DEFAULT_ROOT_FOLDER_PATH`
-
-## Run
-
-```bash
-RADARR_URL=http://localhost:7878 \
-RADARR_API_KEY=your_api_key_here \
-node index.js
+```env
+RADARR_DEFAULT_QUALITY_PROFILE_ID=
+RADARR_DEFAULT_ROOT_FOLDER_PATH=
 ```
 
-or
+3. Run:
 
 ```bash
 npm start
 ```
 
-## Standalone Binaries (Windows, Linux, macOS)
+4. Confirm by typing `YES` when prompted.
 
-This project can be compiled to standalone executables so users do not need Node.js installed.
+## Run Prebuilt Binaries
 
-Build for your current machine:
+If you downloaded a binary from the GitHub Releases page, you can run it without Node.js.
 
-```bash
-npm run build:current
+1. Download the asset for your OS from Releases.
+2. Set these environment variables:
+
+```env
+RADARR_URL=http://localhost:7878
+RADARR_API_KEY=your_api_key_here
 ```
 
-Build all targets (win-x64, linux-x64, macos-x64, macos-arm64):
+3. Run the binary:
+
+macOS/Linux:
 
 ```bash
-npm run build:all
+chmod +x ./node-radarr-redownloader
+RADARR_URL=http://localhost:7878 RADARR_API_KEY=your_api_key_here ./node-radarr-redownloader
 ```
 
-Compiled files are written to `dist/`.
+Windows (PowerShell):
 
-Running compiled binaries:
+```powershell
+$env:RADARR_URL = "http://localhost:7878"
+$env:RADARR_API_KEY = "your_api_key_here"
+.\node-radarr-redownloader.exe
+```
 
-- Linux/macOS: run the file from `dist/` directly
-- Windows: run the `.exe` file from `dist/`
+Optional fallback values also work with binaries:
 
-Environment variables are still required for API access (`RADARR_URL`, `RADARR_API_KEY`, and optional fallback variables).
+```env
+RADARR_DEFAULT_QUALITY_PROFILE_ID=
+RADARR_DEFAULT_ROOT_FOLDER_PATH=
+```
 
-## Automated GitHub Releases (Actions)
+## Selection Modes
 
-This repository includes a GitHub Actions workflow at `.github/workflows/release.yml`.
+- `Quality`: asks next for `below`, `at/above`, or `both` quality cutoff groups.
+- `Filter`: only movies without custom format.
+- `Size`: largest files first.
+- `Newest added`: latest Radarr-added movies first.
+- `Oldest added`: earliest Radarr-added movies first.
 
-How it works:
+## Requirements
 
-1. Push a version tag like `v1.0.1`.
-2. Actions builds binaries for Windows, Linux, and macOS.
-3. Actions creates or updates the matching GitHub Release.
-4. Built binaries are uploaded as release assets for download.
+- Node.js 18+
+- Radarr v3+ with API v3 endpoints enabled
+- Radarr API key with permission to view, delete, and add movies
 
-Manual trigger option:
+## What It Does
 
-- In GitHub Actions, run `Build And Publish Release` and provide `release_tag`.
+1. Fetches your Radarr movie list.
+2. Filters/sorts by selected mode.
+3. Lets you choose how many movies to process and delay between each.
+4. Deletes each selected movie (including files), then re-adds with search enabled.
+ 
+## Acknowledgement
 
-## Important
+This workflow update was requested by [u/Limebaish](https://www.reddit.com/user/Limebaish/) in this Reddit thread comment:
+[r/radarr comment link](https://www.reddit.com/r/radarr/comments/1sdgsar/comment/oeiskvc/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button)
+
+## Important Safety Notes
 
 - Heads up: this script removes existing movie entries and files before re-adding them, so use it only for movies you intentionally want to refresh.
-- It asks for explicit `YES` confirmation before making changes.
-- If re-add fails for a movie, that movie may remain deleted and will be shown in the failure summary.
+- It asks for explicit `YES` confirmation before making any changes.
+- If re-add fails for a movie, that movie may remain deleted and is listed in the failure summary.
 - Failed items are also appended to `logs/failed-movies.log` so you can track what still needs to be re-added or downloaded.
