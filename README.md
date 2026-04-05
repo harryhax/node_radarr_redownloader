@@ -6,10 +6,13 @@
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
 
-Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile/rule changes. You can choose a quality-cutoff filter (below, at/above, or both) and a sorting mode (below-cutoff-first or size) before each run. The tool then deletes and re-adds movies with search enabled to trigger new downloads.
 
-## TLDR; 
-Pick a quality filter and sort mode, then re-download movies so new grabs follow your current Radarr quality rules. The script processes one movie at a time with a delay and shows IMDb-first identifiers to avoid title ambiguity.
+Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile or rule changes. You can choose a quality-cutoff filter (below, at/above, or both) and a sorting mode (below-cutoff-first or size) before each run. The tool then deletes and re-adds movies with search enabled so new grabs follow your current quality rules, processing one movie at a time with a delay and IMDb-first identifiers to avoid title ambiguity.
+
+## Screenshots 
+![Node Radarr Redownloader Screenshot 1](screenshots/ss1.png)
+
+![Node Radarr Redownloader Screenshot 2](screenshots/ss2.png)
 
 ## Details
 
