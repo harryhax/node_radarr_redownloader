@@ -84,6 +84,21 @@ Running compiled binaries:
 
 Environment variables are still required for API access (`RADARR_URL`, `RADARR_API_KEY`, and optional fallback variables).
 
+## Automated GitHub Releases (Actions)
+
+This repository includes a GitHub Actions workflow at `.github/workflows/release.yml`.
+
+How it works:
+
+1. Push a version tag like `v1.0.1`.
+2. Actions builds binaries for Windows, Linux, and macOS.
+3. Actions creates or updates the matching GitHub Release.
+4. Built binaries are uploaded as release assets for download.
+
+Manual trigger option:
+
+- In GitHub Actions, run `Build And Publish Release` and provide `release_tag`.
+
 ## Important
 
 - This script is destructive: it deletes Radarr movie entries and files before re-adding.
