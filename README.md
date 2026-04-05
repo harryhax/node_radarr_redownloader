@@ -9,10 +9,12 @@
 
 Node Radarr Redownloader is a CLI that refreshes selected movies after Radarr profile or rule changes. You can choose a quality-cutoff filter (below, at/above, or both) and a sorting mode (below-cutoff-first or size) before each run. The tool then deletes and re-adds movies with search enabled so new grabs follow your current quality rules, processing one movie at a time with a delay and IMDb-first identifiers to avoid title ambiguity.
 
-## Screenshots 
-![Node Radarr Redownloader Screenshot 1](screenshots/ss1.png)
-
-![Node Radarr Redownloader Screenshot 2](screenshots/ss2.png)
+## Screenshot
+<p align="center">
+   <a href="screenshots/ss1.png">
+      <img src="screenshots/ss1.png" alt="Node Radarr Redownloader Screenshot 1" width="48%" />
+   </a>
+</p>
 
 ## Details
 
