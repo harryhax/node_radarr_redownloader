@@ -52,8 +52,9 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
     const movie = movies[index];
     const name = movie.title || "Unknown title";
     const imdbId = movie.imdbId || null;
+    const movieIdentity = `imdb: ${imdbId || "n/a"} | ${name}`;
 
-    console.log(`\n[${index + 1}/${count}] Processing ${name}${imdbId ? ` (${imdbId})` : ""}`);
+    console.log(`\n[${index + 1}/${count}] Processing ${movieIdentity}`);
 
     rememberedMovies.push({
       // Saved for end-of-run reporting and troubleshooting.
@@ -78,7 +79,7 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
         error: error instanceof Error ? error.message : String(error),
       });
 
-      console.error(`Failed for ${name}: ${error instanceof Error ? error.message : error}`);
+      console.error(`Failed for ${movieIdentity}: ${error instanceof Error ? error.message : error}`);
     }
 
     if (index < count - 1) {

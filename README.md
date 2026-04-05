@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
 [![Platforms](https://img.shields.io/badge/platforms-win--x64%20%7C%20linux--x64%20%7C%20macos--x64%20%7C%20macos--arm64-blue)](https://github.com/harryhax/node_radarr_redownloader/releases)
 
-Node Radarr Redownloader is a CLI that refreshes selected movies in size order: it deletes each movie and files from Radarr, then re-adds it with search enabled so the download restarts automatically. It is useful for batch re-downloads with a configurable count and delay.
+Node Radarr Redownloader is a CLI that refreshes selected movies: it lets you choose below-cutoff, at/above-cutoff, or both, then sort by below-quality-cutoff first or by size before deleting and re-adding with search enabled. It is useful for batch re-downloads with a configurable count and delay.
 
 ## TLDR; 
 Re-download movies after Radarr profile changes, so new grabs follow your updated quality and selection rules.
@@ -14,10 +14,11 @@ Re-download movies after Radarr profile changes, so new grabs follow your update
 ## Details
 
 1. Fetches all Radarr movies
-2. Sorts them by size descending
-3. Lets you choose how many to process
-4. For each movie, stores its title/imdb in memory (in-process array), deletes the movie with files, and adds it back with search enabled
-5. Waits between each movie so Radarr can catch up
+2. Asks you to choose quality filter (below cutoff, at/above cutoff, or both)
+3. Asks you to choose sorting mode (below quality cutoff first, or size descending)
+4. Lets you choose how many to process
+5. For each movie, stores imdb/title in memory (imdb first), deletes the movie with files, and adds it back with search enabled
+6. Waits between each movie so Radarr can catch up
 
 ## Project Structure
 

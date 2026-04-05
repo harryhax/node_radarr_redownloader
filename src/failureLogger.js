@@ -23,7 +23,7 @@ async function writeFailureLog(failures) {
     const title = sanitizeLogValue(failure.title || "Unknown title");
     const imdbId = sanitizeLogValue(failure.imdbId || "n/a");
     const error = sanitizeLogValue(failure.error || "Unknown error");
-    lines.push(`${index + 1}. ${title} | imdb: ${imdbId} | error: ${error}`);
+    lines.push(`${index + 1}. imdb: ${imdbId} | title: ${title} | error: ${error}`);
   });
 
   lines.push("");

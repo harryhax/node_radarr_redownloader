@@ -10,6 +10,12 @@ function getMovieSize(movie) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function isMovieBelowQualityCutoff(movie) {
+  // Radarr sets this when the existing file does not meet current quality cutoff rules.
+  const cutoffNotMet = movie?.movieFile?.qualityCutoffNotMet ?? movie?.qualityCutoffNotMet;
+  return cutoffNotMet === true;
+}
+
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
@@ -25,5 +31,6 @@ function formatBytes(bytes) {
 module.exports = {
   wait,
   getMovieSize,
+  isMovieBelowQualityCutoff,
   formatBytes,
 };
