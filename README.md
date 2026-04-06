@@ -1,18 +1,12 @@
 # Node Radarr Redownloader
 
 [![Release](https://img.shields.io/github/v/release/harryhax/node_radarr_redownloader?display_name=tag)](https://github.com/harryhax/node_radarr_redownloader/releases)
+[![Downloads](https://img.shields.io/github/downloads/harryhax/node_radarr_redownloader/total)](https://github.com/harryhax/node_radarr_redownloader/releases)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white)](https://nodejs.org/en/download)
 [![License](https://img.shields.io/github/license/harryhax/node_radarr_redownloader)](https://github.com/harryhax/node_radarr_redownloader/blob/main/LICENSE)
 
 
 Node Radarr Redownloader is a CLI that refreshes selected Radarr movies after profile/rule changes by deleting and re-adding them with search enabled.
-
-## Screenshot
-<p align="center">
-   <a href="screenshots/ss1.png">
-      <img src="screenshots/ss1.png" alt="Node Radarr Redownloader Screenshot 1" width="48%" />
-   </a>
-</p>
 
 ## Quick Start
 
@@ -49,6 +43,29 @@ npm start
 ```
 
 4. Confirm by typing `YES` when prompted.
+
+## CLI Demo
+
+Example main menu shown after startup:
+
+```text
+$ npm start
+Using Radarr at http://localhost:7878
+Fetching movies...
+Movies below quality cutoff: 123
+Movies at/above quality cutoff: 456
+Movies using custom format: 321
+Movies without custom format: 258
+
+Choose selection mode:
+1. Quality
+2. Customer Filters
+3. File Size
+4. Newest added
+5. Oldest added
+6. Folder pattern
+Mode [default: 1]:
+```
 
 ## Run Prebuilt Binaries
 
@@ -89,10 +106,18 @@ RADARR_DEFAULT_ROOT_FOLDER_PATH=
 ## Selection Modes
 
 - `Quality`: asks next for `below`, `at/above`, or `both` quality cutoff groups.
-- `Filter`: only movies without custom format.
+- `Filter`: asks next for one of:
+   - `Without custom format only`
+   - `Below minimum custom format score` and then either:
+      - use Radarr profile default (Minimum Custom Format Score)
+      - enter a manual score
 - `Size`: largest files first.
 - `Newest added`: latest Radarr-added movies first.
 - `Oldest added`: earliest Radarr-added movies first.
+- `Folder pattern`: filters by movie folder/path name using wildcard search:
+   - `*` matches any number of characters
+   - `?` matches exactly one character
+   - Example: `*2TB_*`
 
 ## Requirements
 

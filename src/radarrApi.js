@@ -69,6 +69,11 @@ class RadarrClient {
     return this.request("/movie");
   }
 
+  async getQualityProfiles() {
+    // Used to read profile-level minimum custom format score defaults.
+    return this.request("/qualityprofile");
+  }
+
   async deleteMovie(movieId) {
     // deleteFiles=true removes files/folders along with the Radarr entry.
     return this.request(`/movie/${movieId}`, {

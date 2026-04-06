@@ -10,6 +10,7 @@ const { RadarrClient } = require("./src/radarrApi");
 const {
   getMovieSize,
   isMovieBelowQualityCutoff,
+  getMovieCustomFormatScore,
   movieUsesCustomFormat,
   formatBytes,
 } = require("./src/utils");
@@ -22,10 +23,98 @@ const MAIN_MODE_FILTER = "filter";
 const MAIN_MODE_SIZE = "size";
 const MAIN_MODE_NEWEST = "newest";
 const MAIN_MODE_OLDEST = "oldest";
+const MAIN_MODE_FOLDER = "folder";
+
+const FILTER_SCOPE_WITHOUT_CUSTOM_FORMAT = "without-custom-format";
+const FILTER_SCOPE_BELOW_MIN_SCORE = "below-min-score";
+const FILTER_SCORE_SOURCE_MANUAL = "manual";
+const FILTER_SCORE_SOURCE_RADARR_DEFAULT = "radarr-default";
 
 const QUALITY_SCOPE_BELOW = "below";
 const QUALITY_SCOPE_AT_OR_ABOVE = "at-or-above";
 const QUALITY_SCOPE_BOTH = "both";
+
+function getMovieFolderPath(movie) {
+  const pathValue =
+    movie?.path ??
+    movie?.folderName ??
+    movie?.movieFile?.relativePath ??
+    movie?.movieFile?.path ??
+    "";
+
+  return typeof pathValue === "string" ? pathValue.trim() : "";
+}
+
+function getLastPathSegment(pathValue) {
+  if (!pathValue) {
+    return "";
+  }
+
+  const normalizedPath = pathValue.replace(/[\\/]+$/, "");
+  if (!normalizedPath) {
+    return "";
+  }
+
+  const segments = normalizedPath.split(/[\\/]/);
+  return segments[segments.length - 1] || "";
+}
+
+function compileFolderPattern(rawPattern) {
+  const pattern = String(rawPattern || "").trim();
+  if (!pattern) {
+    return null;
+  }
+
+  if (!/[?*]/.test(pattern)) {
+    const loweredPattern = pattern.toLowerCase();
+    return {
+      displayPattern: `*${pattern}*`,
+      matches: (input) => String(input || "").toLowerCase().includes(loweredPattern),
+    };
+  }
+
+  const regexSource = pattern
+    .split("")
+    .map((character) => {
+      if (character === "*") {
+        return ".*";
+      }
+
+      if (character === "?") {
+        return ".";
+      }
+
+      return /[\\^$.*+?()[\]{}|]/.test(character) ? `\\${character}` : character;
+    })
+    .join("");
+
+  const patternRegex = new RegExp(`^${regexSource}$`, "i");
+
+  return {
+    displayPattern: pattern,
+    matches: (input) => patternRegex.test(String(input || "")),
+  };
+}
+
+function movieMatchesFolderPattern(movie, folderFilter) {
+  if (!folderFilter || typeof folderFilter.matches !== "function") {
+    return true;
+  }
+
+  const fullPath = getMovieFolderPath(movie);
+  const folderName = getLastPathSegment(fullPath);
+
+  return folderFilter.matches(fullPath) || folderFilter.matches(folderName);
+}
+
+async function askFolderPattern(readlineInterface) {
+  // Pattern supports shell-like wildcards: * for many chars, ? for one char.
+  const answer = (
+    await readlineInterface.question("Folder/directory pattern [default: *]: ")
+  ).trim();
+
+  return answer || "*";
+}
 
 function getMovieAddedTimestamp(movie) {
   const addedRaw = movie?.added ?? movie?.addedDate ?? movie?.dateAdded ?? null;
@@ -42,7 +131,50 @@ function getMovieAddedDisplay(movie) {
   return new Date(addedTimestamp).toISOString().slice(0, 10);
 }
 
-function getMoviesByMainMode(movies, mode, qualityScope) {
+function getProfileMinimumCustomFormatScore(profile) {
+  // Radarr quality profile stores this as minFormatScore.
+  const minimumScoreRaw = profile?.minFormatScore ?? profile?.minimumCustomFormatScore ?? 0;
+  const minimumScore = Number(minimumScoreRaw);
+  return Number.isFinite(minimumScore) ? minimumScore : 0;
+}
+
+function buildQualityProfileMinimumScoreMap(qualityProfiles) {
+  const scoreMap = new Map();
+
+  if (!Array.isArray(qualityProfiles)) {
+    return scoreMap;
+  }
+
+  qualityProfiles.forEach((profile) => {
+    const profileId = Number(profile?.id);
+    if (!Number.isInteger(profileId)) {
+      return;
+    }
+
+    scoreMap.set(profileId, getProfileMinimumCustomFormatScore(profile));
+  });
+
+  return scoreMap;
+}
+
+function getMovieMinimumCustomFormatScore(movie, filterSettings) {
+  if (filterSettings.scoreSource === FILTER_SCORE_SOURCE_MANUAL) {
+    return filterSettings.manualMinimumScore;
+  }
+
+  if (filterSettings.scoreSource === FILTER_SCORE_SOURCE_RADARR_DEFAULT) {
+    const profileId = Number(movie?.qualityProfileId);
+    if (!Number.isInteger(profileId)) {
+      return null;
+    }
+
+    return filterSettings.qualityProfileMinimumScoreById.get(profileId) ?? null;
+  }
+
+  return null;
+}
+
+function getMoviesByMainMode(movies, mode, qualityScope, customFormatFilter, folderFilter) {
   const modeFilteredMovies =
     mode === MAIN_MODE_QUALITY
       ? movies.filter((movie) => {
@@ -59,7 +191,18 @@ function getMoviesByMainMode(movies, mode, qualityScope) {
           return true;
         })
       : mode === MAIN_MODE_FILTER
-        ? movies.filter((movie) => !movieUsesCustomFormat(movie))
+        ? customFormatFilter.scope === FILTER_SCOPE_BELOW_MIN_SCORE
+          ? movies.filter((movie) => {
+              const minimumScore = getMovieMinimumCustomFormatScore(movie, customFormatFilter);
+              if (!Number.isFinite(minimumScore)) {
+                return false;
+              }
+
+              return getMovieCustomFormatScore(movie) < minimumScore;
+            })
+          : movies.filter((movie) => !movieUsesCustomFormat(movie))
+        : mode === MAIN_MODE_FOLDER
+          ? movies.filter((movie) => movieMatchesFolderPattern(movie, folderFilter))
         : movies;
 
   if (mode === MAIN_MODE_NEWEST) {
@@ -88,17 +231,27 @@ function getMoviesByMainMode(movies, mode, qualityScope) {
   return [...modeFilteredMovies].sort((a, b) => getMovieSize(b) - getMovieSize(a));
 }
 
-function getMoviePreviewSuffix(movie, selectedMode) {
+function getMoviePreviewSuffix(movie, selectedMode, customFormatFilter) {
   if (selectedMode === MAIN_MODE_QUALITY) {
     return isMovieBelowQualityCutoff(movie) ? "below cutoff" : "at/above cutoff";
   }
 
   if (selectedMode === MAIN_MODE_FILTER) {
+    if (customFormatFilter.scope === FILTER_SCOPE_BELOW_MIN_SCORE) {
+      const minimumScore = getMovieMinimumCustomFormatScore(movie, customFormatFilter);
+      const currentScore = getMovieCustomFormatScore(movie);
+      return `score: ${currentScore} < min: ${minimumScore}`;
+    }
+
     return "no custom format";
   }
 
   if (selectedMode === MAIN_MODE_NEWEST || selectedMode === MAIN_MODE_OLDEST) {
     return `added: ${getMovieAddedDisplay(movie)}`;
+  }
+
+  if (selectedMode === MAIN_MODE_FOLDER) {
+    return `folder: ${getMovieFolderPath(movie) || "unknown"}`;
   }
 
   return "";
@@ -138,15 +291,16 @@ async function main() {
 
   console.log("\nChoose selection mode:");
   console.log("1. Quality");
-  console.log("2. Filter (without custom format only)");
-  console.log("3. Size (largest first)");
+  console.log("2. Customer Filters");
+  console.log("3. File Size");
   console.log("4. Newest added");
   console.log("5. Oldest added");
+  console.log("6. Folder pattern");
 
   const modeChoice = await askInteger(rl, "Mode", {
     defaultValue: 1,
     min: 1,
-    max: 5,
+    max: 6,
   });
 
   const selectedMode =
@@ -158,7 +312,22 @@ async function main() {
           ? MAIN_MODE_NEWEST
           : modeChoice === 5
             ? MAIN_MODE_OLDEST
+            : modeChoice === 6
+              ? MAIN_MODE_FOLDER
             : MAIN_MODE_QUALITY;
+
+  let customFormatFilter = {
+    scope: FILTER_SCOPE_WITHOUT_CUSTOM_FORMAT,
+    scoreSource: null,
+    manualMinimumScore: null,
+    qualityProfileMinimumScoreById: new Map(),
+  };
+
+  let folderFilter = {
+    rawPattern: "*",
+    displayPattern: "*",
+    matches: () => true,
+  };
 
   let qualityScope = QUALITY_SCOPE_BOTH;
   if (selectedMode === MAIN_MODE_QUALITY) {
@@ -181,13 +350,104 @@ async function main() {
           : QUALITY_SCOPE_BELOW;
   }
 
-  const filteredMovies = getMoviesByMainMode(movies, selectedMode, qualityScope);
+  if (selectedMode === MAIN_MODE_FILTER) {
+    console.log("\nChoose custom format filter:");
+    console.log("1. Without custom format only");
+    console.log("2. Below minimum custom format score");
+
+    const customFormatFilterChoice = await askInteger(rl, "Custom format filter", {
+      defaultValue: 2,
+      min: 1,
+      max: 2,
+    });
+
+    if (customFormatFilterChoice === 2) {
+      customFormatFilter.scope = FILTER_SCOPE_BELOW_MIN_SCORE;
+
+      console.log("\nChoose minimum custom format score source:");
+      console.log("1. Use Radarr quality profile minimum score");
+      console.log("2. Enter score manually");
+
+      const scoreSourceChoice = await askInteger(rl, "Score source", {
+        defaultValue: 1,
+        min: 1,
+        max: 2,
+      });
+
+      if (scoreSourceChoice === 2) {
+        customFormatFilter.scoreSource = FILTER_SCORE_SOURCE_MANUAL;
+        customFormatFilter.manualMinimumScore = await askInteger(
+          rl,
+          "Minimum custom format score",
+          {
+            defaultValue: 0,
+            min: -100000,
+            max: 100000,
+          }
+        );
+      } else {
+        customFormatFilter.scoreSource = FILTER_SCORE_SOURCE_RADARR_DEFAULT;
+        console.log("Fetching quality profiles...");
+
+        const qualityProfiles = await client.getQualityProfiles();
+        customFormatFilter.qualityProfileMinimumScoreById =
+          buildQualityProfileMinimumScoreMap(qualityProfiles);
+
+        if (customFormatFilter.qualityProfileMinimumScoreById.size === 0) {
+          throw new Error("No quality profiles were returned by Radarr.");
+        }
+      }
+    }
+  }
+
+  if (selectedMode === MAIN_MODE_FOLDER) {
+    console.log("\nEnter folder/directory pattern:");
+    console.log("- Use * for any number of characters");
+    console.log("- Use ? for exactly one character");
+    console.log("- Example: *2TB_*");
+
+    const rawPattern = await askFolderPattern(rl);
+    const compiledPattern = compileFolderPattern(rawPattern);
+
+    if (!compiledPattern) {
+      throw new Error("Folder pattern cannot be empty.");
+    }
+
+    folderFilter = {
+      rawPattern,
+      displayPattern: compiledPattern.displayPattern,
+      matches: compiledPattern.matches,
+    };
+  }
+
+  const filteredMovies = getMoviesByMainMode(
+    movies,
+    selectedMode,
+    qualityScope,
+    customFormatFilter,
+    folderFilter
+  );
 
   if (filteredMovies.length === 0) {
     console.log("No movies matched the selected mode.");
     rl.close();
     return;
   }
+
+  if (selectedMode === MAIN_MODE_FOLDER) {
+    console.log(
+      `\nMatched ${filteredMovies.length} movie(s) for folder pattern: ${folderFilter.displayPattern}`
+    );
+
+    filteredMovies.forEach((movie, index) => {
+      const imdbLabel = movie.imdbId || "n/a";
+      const folderPath = getMovieFolderPath(movie) || "unknown";
+      console.log(
+        `${index + 1}. imdb: ${imdbLabel} | ${movie.title} (${movie.year || "unknown"}) | folder: ${folderPath}`
+      );
+    });
+  }
+
   const sortedMovies = filteredMovies;
 
   const count = await askInteger(rl, "How many movies should be processed", {
@@ -210,21 +470,28 @@ async function main() {
           ? "quality (at/above quality cutoff only)"
           : "quality (both)"
       : selectedMode === MAIN_MODE_FILTER
-        ? "filter (without custom format only)"
+        ? customFormatFilter.scope === FILTER_SCOPE_BELOW_MIN_SCORE
+          ? customFormatFilter.scoreSource === FILTER_SCORE_SOURCE_MANUAL
+            ? `filter (below minimum custom format score: < ${customFormatFilter.manualMinimumScore})`
+            : "filter (below minimum custom format score: Radarr profile default)"
+          : "filter (without custom format only)"
         : selectedMode === MAIN_MODE_SIZE
           ? "size (largest first)"
           : selectedMode === MAIN_MODE_NEWEST
             ? "newest added"
-            : "oldest added";
+            : selectedMode === MAIN_MODE_OLDEST
+              ? "oldest added"
+              : `folder pattern (${folderFilter.displayPattern})`;
 
   console.log(`\nSelected mode: ${modeLabel}`);
 
   console.log("\nTop selected movies:");
   for (let index = 0; index < count; index += 1) {
     const movie = sortedMovies[index];
-    const previewSuffix = getMoviePreviewSuffix(movie, selectedMode);
+    const previewSuffix = getMoviePreviewSuffix(movie, selectedMode, customFormatFilter);
+    const customFormatScore = getMovieCustomFormatScore(movie);
     const imdbLabel = movie.imdbId || "n/a";
-    const previewBase = `${index + 1}. imdb: ${imdbLabel} | ${movie.title} (${movie.year || "unknown"}) - ${formatBytes(getMovieSize(movie))}`;
+    const previewBase = `${index + 1}. imdb: ${imdbLabel} | ${movie.title} (${movie.year || "unknown"}) - ${formatBytes(getMovieSize(movie))} | custom format score: ${customFormatScore}`;
     console.log(previewSuffix ? `${previewBase} | ${previewSuffix}` : previewBase);
   }
 

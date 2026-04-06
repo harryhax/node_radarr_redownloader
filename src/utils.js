@@ -16,11 +16,16 @@ function isMovieBelowQualityCutoff(movie) {
   return cutoffNotMet === true;
 }
 
-function movieUsesCustomFormat(movie) {
-  // Prefer score when available; otherwise fallback to custom format array length.
+function getMovieCustomFormatScore(movie) {
   const scoreRaw = movie?.movieFile?.customFormatScore ?? movie?.customFormatScore;
   const score = Number(scoreRaw);
-  if (Number.isFinite(score)) {
+  return Number.isFinite(score) ? score : 0;
+}
+
+function movieUsesCustomFormat(movie) {
+  // Prefer score when available; otherwise fallback to custom format array length.
+  const score = getMovieCustomFormatScore(movie);
+  if (score > 0) {
     return score > 0;
   }
 
@@ -55,6 +60,7 @@ module.exports = {
   wait,
   getMovieSize,
   isMovieBelowQualityCutoff,
+  getMovieCustomFormatScore,
   movieUsesCustomFormat,
   formatBytes,
 };
