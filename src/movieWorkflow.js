@@ -1,5 +1,11 @@
 const { wait } = require("./utils");
 
+function normalizeFolderPath(pathValue) {
+  return String(pathValue || "")
+    .trim()
+    .replace(/[\\/]+$/, "");
+}
+
 function buildReAddPayload(movie, defaults) {
   // Radarr add payload with search enabled to immediately trigger a download.
   const tmdbId = movie.tmdbId;
@@ -10,8 +16,14 @@ function buildReAddPayload(movie, defaults) {
   const qualityProfileId =
     movie.qualityProfileId ||
     (Number.isInteger(defaults.defaultQualityProfileId) ? defaults.defaultQualityProfileId : null);
-
-  const rootFolderPath = movie.rootFolderPath || defaults.defaultRootFolderPath || null;
+  const envRootFolderPath = String(defaults.defaultRootFolderPath || "").trim();
+  const movieRootFolderPath = String(movie.rootFolderPath || "").trim();
+  const envRootFolderPathNormalized = normalizeFolderPath(envRootFolderPath);
+  const movieRootFolderPathNormalized = normalizeFolderPath(movieRootFolderPath);
+  const rootFolderPath =
+    envRootFolderPath && movieRootFolderPathNormalized !== envRootFolderPathNormalized
+      ? envRootFolderPath
+      : movieRootFolderPath || envRootFolderPath || null;
 
   if (!qualityProfileId) {
     throw new Error(
@@ -43,9 +55,13 @@ function buildReAddPayload(movie, defaults) {
   };
 }
 
-async function processMovies(client, movies, { count, delaySeconds, defaults }) {
+async function processMovies(client, movies, { count, delaySeconds, deleteToAddDelaySeconds, defaults }) {
   const rememberedMovies = [];
   const failures = [];
+  const parsedDeleteToAddDelaySeconds = Number(deleteToAddDelaySeconds);
+  const deleteToAddDelaySecondsSafe = Number.isFinite(parsedDeleteToAddDelaySeconds)
+    ? Math.max(2, parsedDeleteToAddDelaySeconds)
+    : 2;
 
   // Process one movie at a time to avoid overloading Radarr.
   for (let index = 0; index < count; index += 1) {
@@ -65,8 +81,9 @@ async function processMovies(client, movies, { count, delaySeconds, defaults }) 
 
     try {
       await client.deleteMovie(movie.id);
-      // Give Radarr a brief moment to settle delete side-effects before re-adding.
-      await wait(1500);
+      // Give Radarr time to settle delete side-effects before re-adding.
+      console.log(`Waiting ${deleteToAddDelaySecondsSafe}s between delete and re-add...`);
+      await wait(deleteToAddDelaySecondsSafe * 1000);
 
       const payload = buildReAddPayload(movie, defaults);
       await client.addMovie(payload);

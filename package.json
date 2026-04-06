@@ -1,6 +1,6 @@
 {
   "name": "node-radarr-redownloader",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Refresh selected Radarr movies using quality/filter/size/newest/oldest selection modes with search enabled.",
   "main": "index.js",

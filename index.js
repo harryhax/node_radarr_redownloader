@@ -5,6 +5,7 @@ const {
   RADARR_API_KEY,
   DEFAULT_QUALITY_PROFILE_ID,
   DEFAULT_ROOT_FOLDER_PATH,
+  DELETE_TO_ADD_DELAY_SECONDS,
 } = require("./src/config");
 const { RadarrClient } = require("./src/radarrApi");
 const {
@@ -507,6 +508,7 @@ async function main() {
   const { rememberedMovies, failures } = await processMovies(client, sortedMovies, {
     count,
     delaySeconds,
+    deleteToAddDelaySeconds: DELETE_TO_ADD_DELAY_SECONDS,
     defaults: {
       defaultQualityProfileId: DEFAULT_QUALITY_PROFILE_ID,
       defaultRootFolderPath: DEFAULT_ROOT_FOLDER_PATH,

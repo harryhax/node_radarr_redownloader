@@ -34,6 +34,7 @@ Optional fallback values:
 ```env
 RADARR_DEFAULT_QUALITY_PROFILE_ID=
 RADARR_DEFAULT_ROOT_FOLDER_PATH=
+RADARR_DELETE_TO_ADD_DELAY_SECONDS=2
 ```
 
 3. Run:
@@ -59,7 +60,7 @@ Movies without custom format: 258
 
 Choose selection mode:
 1. Quality
-2. Customer Filters
+2. Custom Filters
 3. File Size
 4. Newest added
 5. Oldest added
@@ -101,7 +102,12 @@ Optional fallback values also work with binaries:
 ```env
 RADARR_DEFAULT_QUALITY_PROFILE_ID=
 RADARR_DEFAULT_ROOT_FOLDER_PATH=
+RADARR_DELETE_TO_ADD_DELAY_SECONDS=2
 ```
+
+`RADARR_DELETE_TO_ADD_DELAY_SECONDS` controls the delay between deleting a movie and re-adding it. Any value lower than `2` is automatically treated as `2` seconds.
+
+`RADARR_DEFAULT_ROOT_FOLDER_PATH` is used only when a movie's existing Radarr root folder path does not match this value.
 
 ## Selection Modes
 
@@ -130,7 +136,7 @@ RADARR_DEFAULT_ROOT_FOLDER_PATH=
 1. Fetches your Radarr movie list.
 2. Filters/sorts by selected mode.
 3. Lets you choose how many movies to process and delay between each.
-4. Deletes each selected movie (including files), then re-adds with search enabled.
+4. Deletes each selected movie (including files), waits the configured delete-to-add delay (minimum 2 seconds), then re-adds with search enabled.
  
 ## Acknowledgement
 

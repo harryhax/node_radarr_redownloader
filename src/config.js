@@ -8,10 +8,19 @@ const DEFAULT_QUALITY_PROFILE_ID = Number.parseInt(
   10
 );
 const DEFAULT_ROOT_FOLDER_PATH = process.env.RADARR_DEFAULT_ROOT_FOLDER_PATH || "";
+const RAW_DELETE_TO_ADD_DELAY_SECONDS = Number.parseInt(
+  process.env.RADARR_DELETE_TO_ADD_DELAY_SECONDS || "",
+  10
+);
+// Keep delete/re-add pacing conservative to avoid Radarr race conditions.
+const DELETE_TO_ADD_DELAY_SECONDS = Number.isInteger(RAW_DELETE_TO_ADD_DELAY_SECONDS)
+  ? Math.max(2, RAW_DELETE_TO_ADD_DELAY_SECONDS)
+  : 2;
 
 module.exports = {
   RADARR_URL,
   RADARR_API_KEY,
   DEFAULT_QUALITY_PROFILE_ID,
   DEFAULT_ROOT_FOLDER_PATH,
+  DELETE_TO_ADD_DELAY_SECONDS,
 };
